@@ -2,10 +2,12 @@ package interfaces
 
 import (
 	"context"
-	"github.com/ega-forever/otus-image-service/internal/domain/models"
+	"io"
 )
 
 // todo add more actions
 type ImageStorage interface {
-	SaveImage(ctx context.Context, event *models.Image) (*models.Image, error)
+	SaveImageByURL(ctx context.Context, url string, filename string) error
+	FindCachedImageData(url string) ([]byte, error)
+	SaveImageData(inStream io.ReadCloser, filename string) error
 }

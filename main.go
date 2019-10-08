@@ -13,7 +13,8 @@ func init() {
 
 	viper.SetDefault("LOG_LEVEL", 30)
 	viper.SetDefault("REST_PORT", "8080")
-	viper.SetDefault("DB_URI", "postgres://user:123@localhost:5432/otus")
+	viper.SetDefault("LRU_CACHE", 10)
+	viper.SetDefault("STORE_DIR", "temp")
 
 	viper.ReadInConfig()
 	viper.AutomaticEnv()

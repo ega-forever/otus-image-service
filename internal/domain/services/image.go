@@ -3,42 +3,45 @@ package services
 import (
 	"context"
 	"github.com/ega-forever/otus-image-service/internal/domain/interfaces"
-	"github.com/ega-forever/otus-image-service/internal/domain/models"
-	"io"
 	"net/http"
-	"os"
-	"path"
 	"strconv"
 	"time"
 )
 
 type ImageService struct {
 	imageStorage interfaces.ImageStorage
-	storeDir     string
 }
 
-func NewImageService(imageStorage interfaces.ImageStorage, storeDir string) *ImageService {
-	return &ImageService{imageStorage: imageStorage, storeDir: storeDir}
+func NewImageService(imageStorage interfaces.ImageStorage) *ImageService {
+	return &ImageService{imageStorage: imageStorage}
 }
 
-func (es *ImageService) SaveToStorage(ctx context.Context, url string, timestamp int64) (*models.Image, error) {
+func (es *ImageService) CacheToStorage(ctx context.Context, url string) ([]byte, error) {
 
-	name, err := es.grabImage(url)
+	cachedFile, _ := es.imageStorage.FindCachedImageData(url)
+
+	if cachedFile != nil {
+		return cachedFile, nil
+	}
+
+	filename, err := es.grabAndCacheImage(url)
 
 	if err != nil {
 		return nil, err
 	}
 
-	savedEvent, err := es.imageStorage.SaveImage(ctx, &models.Image{Url: url})
+	err = es.imageStorage.SaveImageByURL(ctx, url, filename)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return savedEvent, nil
+	cachedFile, _ = es.imageStorage.FindCachedImageData(url)
+
+	return cachedFile, nil
 }
 
-func (es *ImageService) grabImage(url string) (string, error) {
+func (es *ImageService) grabAndCacheImage(url string) (string, error) {
 
 	type message struct {
 		err  error
@@ -57,22 +60,18 @@ func (es *ImageService) grabImage(url string) (string, error) {
 		}
 
 		filename := strconv.FormatInt(time.Now().UnixNano(), 10)
-		file, err := os.Create(path.Join(es.storeDir, filename))
+		err = es.imageStorage.SaveImageData(response.Body, filename)
 
 		if err != nil {
 			ch <- message{err: err}
 		}
-		defer file.Close()
-
-		_, err = io.Copy(file, response.Body)
-
-		if err != nil {
-			ch <- message{err: err}
-		}
-
 		ch <- message{name: filename}
 	}()
 
 	m := <-ch
 	return m.name, m.err
+}
+
+func (es *ImageService) LRU() {
+
 }
