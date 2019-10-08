@@ -14,13 +14,19 @@ func SetImageRouter(r *mux.Router, imageService *services.ImageService) {
 	s.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
 
 		imageUrl := request.URL.Query().Get("url")
-		file, err := imageService.CacheToStorage(context.Background(), imageUrl)
+		file, headers, err := imageService.CacheToStorage(context.Background(), imageUrl)
 
 		if err != nil {
 			message := messages.DefaultResponse{Status: 0}
 			marshaled, _ := json.Marshal(message)
 			_, _ = response.Write(marshaled)
 			return
+		}
+
+		for key, headerMap := range headers {
+			for _, header := range headerMap {
+				response.Header().Add(key, header)
+			}
 		}
 
 		_, _ = response.Write(file)

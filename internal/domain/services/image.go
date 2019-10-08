@@ -16,36 +16,37 @@ func NewImageService(imageStorage interfaces.ImageStorage) *ImageService {
 	return &ImageService{imageStorage: imageStorage}
 }
 
-func (es *ImageService) CacheToStorage(ctx context.Context, url string) ([]byte, error) {
+func (es *ImageService) CacheToStorage(ctx context.Context, url string) ([]byte, map[string][]string, error) {
 
-	cachedFile, _ := es.imageStorage.FindCachedImageData(url)
+	cachedFile, cachedHeaders, _ := es.imageStorage.FindCachedImageData(url)
 
 	if cachedFile != nil {
-		return cachedFile, nil
+		return cachedFile, cachedHeaders, nil
 	}
 
-	filename, err := es.grabAndCacheImage(url)
+	filename, headers, err := es.grabAndCacheImage(url)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = es.imageStorage.SaveImageByURL(ctx, url, filename)
+	err = es.imageStorage.SaveImageByURL(ctx, url, filename, headers)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	cachedFile, _ = es.imageStorage.FindCachedImageData(url)
+	cachedFile, cachedHeaders, _ = es.imageStorage.FindCachedImageData(url)
 
-	return cachedFile, nil
+	return cachedFile, cachedHeaders, nil
 }
 
-func (es *ImageService) grabAndCacheImage(url string) (string, error) {
+func (es *ImageService) grabAndCacheImage(url string) (string, map[string][]string, error) {
 
 	type message struct {
-		err  error
-		name string
+		err     error
+		name    string
+		headers map[string][]string
 	}
 
 	ch := make(chan message)
@@ -65,13 +66,10 @@ func (es *ImageService) grabAndCacheImage(url string) (string, error) {
 		if err != nil {
 			ch <- message{err: err}
 		}
-		ch <- message{name: filename}
+
+		ch <- message{name: filename, headers: response.Header}
 	}()
 
 	m := <-ch
-	return m.name, m.err
-}
-
-func (es *ImageService) LRU() {
-
+	return m.name, m.headers, m.err
 }

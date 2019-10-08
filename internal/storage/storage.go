@@ -15,6 +15,11 @@ type Storage struct {
 	storeDir string
 }
 
+type lruItem struct {
+	headers  map[string][]string
+	filename string
+}
+
 func New(count int, storeDir string) *Storage {
 	ctx := context.Background()
 	lru := NewLRU(count)
@@ -25,7 +30,7 @@ func New(count int, storeDir string) *Storage {
 	return &Storage{ctx: ctx, lru: lru, storeDir: storeDir}
 }
 
-func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename string) error {
+func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename string, headers map[string][]string) error {
 
 	ch := make(chan error)
 
@@ -33,10 +38,10 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename
 
 	go func() {
 		mutex.Lock()
-		_, removedFilename := storage.lru.Put(url, filename)
+		_, removedItem := storage.lru.Put(url, lruItem{filename: filename, headers: headers})
 
-		if removedFilename != "" {
-			err := os.Remove(path.Join(storage.storeDir, removedFilename))
+		if removedItem != nil {
+			err := os.Remove(path.Join(storage.storeDir, removedItem.(lruItem).filename))
 			ch <- err
 		} else {
 			ch <- nil
@@ -48,16 +53,21 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename
 	return <-ch
 }
 
-func (storage *Storage) FindCachedImageData(url string) ([]byte, error) {
+func (storage *Storage) FindCachedImageData(url string) ([]byte, map[string][]string, error) {
 
-	filename := storage.lru.Get(url)
-	file, err := ioutil.ReadFile(path.Join(storage.storeDir, filename))
+	item := storage.lru.Get(url)
 
-	if err != nil {
-		return nil, err
+	if item == nil {
+		return nil, nil, nil
 	}
 
-	return file, nil
+	file, err := ioutil.ReadFile(path.Join(storage.storeDir, item.(lruItem).filename))
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return file, item.(lruItem).headers, nil
 }
 
 func (storage *Storage) SaveImageData(inStream io.ReadCloser, filename string) error {

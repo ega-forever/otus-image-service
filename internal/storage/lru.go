@@ -5,35 +5,36 @@ import "container/list"
 type LRU struct {
 	cap int
 	l   *list.List
-	m   map[string]*list.Element
+	m   map[interface{}]*list.Element
 }
 
 type Pair struct {
-	key   string
-	value string
+	key   interface{}
+	value interface{}
 }
 
 func NewLRU(capacity int) *LRU {
 	return &LRU{
 		cap: capacity,
 		l:   new(list.List),
-		m:   make(map[string]*list.Element, capacity),
+		m:   make(map[interface{}]*list.Element, capacity),
 	}
 }
 
-func (c *LRU) Get(key string) string {
+func (c *LRU) Get(key interface{}) interface{} {
 	if node, ok := c.m[key]; ok {
 		val := node.Value.(*list.Element).Value.(Pair).value
 		c.l.MoveToFront(node)
 		return val
 	}
-	return ""
+	return nil
 }
 
-func (c *LRU) Put(key string, value string) (string, string) {
+// func (c *LRU) Put(key string, value string) (string, string) {
+func (c *LRU) Put(key interface{}, value interface{}) (interface{}, interface{}) {
 
-	removedKey := ""
-	removedValue := ""
+	var removedKey interface{}
+	var removedValue interface{}
 
 	if node, ok := c.m[key]; ok {
 		c.l.MoveToFront(node)
