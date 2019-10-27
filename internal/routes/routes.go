@@ -6,6 +6,7 @@ import (
 	"github.com/ega-forever/otus-image-service/internal/domain/services"
 	"github.com/ega-forever/otus-image-service/internal/messages"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 )
 
@@ -14,9 +15,11 @@ func SetImageRouter(r *mux.Router, imageService *services.ImageService) {
 	s.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
 
 		imageUrl := request.URL.Query().Get("url")
-		file, headers, err := imageService.CacheToStorage(context.Background(), imageUrl)
+		size := request.URL.Query().Get("size")
+		file, headers, err := imageService.CacheToStorage(context.Background(), imageUrl, size)
 
 		if err != nil {
+			log.Println(err)
 			message := messages.DefaultResponse{Status: 0}
 			marshaled, _ := json.Marshal(message)
 			_, _ = response.Write(marshaled)

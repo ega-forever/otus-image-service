@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"fmt"
+	"github.com/disintegration/imaging"
 	"io"
 	"io/ioutil"
 	"os"
@@ -38,6 +40,7 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename
 
 	go func() {
 		mutex.Lock()
+		fmt.Println("put url", url)
 		_, removedItem := storage.lru.Put(url, lruItem{filename: filename, headers: headers})
 
 		if removedItem != nil {
@@ -55,6 +58,7 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename
 
 func (storage *Storage) FindCachedImageData(url string) ([]byte, map[string][]string, error) {
 
+	fmt.Println("get url", url)
 	item := storage.lru.Get(url)
 
 	if item == nil {
@@ -70,7 +74,7 @@ func (storage *Storage) FindCachedImageData(url string) ([]byte, map[string][]st
 	return file, item.(lruItem).headers, nil
 }
 
-func (storage *Storage) SaveImageData(inStream io.ReadCloser, filename string) error {
+func (storage *Storage) SaveImageData(inStream io.ReadCloser, filename string, width int, height int) error {
 
 	file, err := os.Create(path.Join(storage.storeDir, filename))
 	defer file.Close()
@@ -80,5 +84,19 @@ func (storage *Storage) SaveImageData(inStream io.ReadCloser, filename string) e
 	}
 
 	_, err = io.Copy(file, inStream)
+
+	if err != nil {
+		return err
+	}
+
+	src, err := imaging.Open(path.Join(storage.storeDir, filename))
+
+	if err != nil {
+		return err
+	}
+
+	src = imaging.Resize(src, width, height, imaging.Lanczos)
+	err = imaging.Save(src, path.Join(storage.storeDir, filename))
+
 	return err
 }
