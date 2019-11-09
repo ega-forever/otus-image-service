@@ -17,25 +17,12 @@ func NewImageService(imageStorage interfaces.ImageStorage) *ImageService {
 	return &ImageService{imageStorage: imageStorage}
 }
 
-func (es *ImageService) CacheToStorage(ctx context.Context, url string, size string) ([]byte, map[string][]string, error) {
+func (es *ImageService) CacheToStorage(ctx context.Context, url string, width int, height int) ([]byte, map[string][]string, error) {
 
-	cachedFile, cachedHeaders, _ := es.imageStorage.FindCachedImageData(url + "&size=" + size)
+	cachedFile, cachedHeaders, _ := es.imageStorage.FindCachedImageData(url, width, height)
 
 	if cachedFile != nil {
 		return cachedFile, cachedHeaders, nil
-	}
-
-	sizeParts := strings.Split(size, "x")
-	width, err := strconv.Atoi(sizeParts[0])
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	height, err := strconv.Atoi(sizeParts[1])
-
-	if err != nil {
-		return nil, nil, err
 	}
 
 	filename, headers, err := es.grabAndCacheImage(url, height, width)
@@ -44,13 +31,13 @@ func (es *ImageService) CacheToStorage(ctx context.Context, url string, size str
 		return nil, nil, err
 	}
 
-	err = es.imageStorage.SaveImageByURL(ctx, url+"&size="+size, filename, headers)
+	err = es.imageStorage.SaveImageByURL(ctx, url, width, height, filename, headers)
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cachedFile, cachedHeaders, _ = es.imageStorage.FindCachedImageData(url + "&size=" + size)
+	cachedFile, cachedHeaders, _ = es.imageStorage.FindCachedImageData(url, width, height)
 
 	return cachedFile, cachedHeaders, nil
 }
@@ -66,14 +53,18 @@ func (es *ImageService) grabAndCacheImage(url string, width int, height int) (st
 	ch := make(chan message)
 
 	go func() {
-		response, err := http.Get(url)
-		defer response.Body.Close()
+		response, err := http.Get("https://" + url)
 
 		if err != nil {
-			ch <- message{err: err}
-			return
+			response, err = http.Get("http://" + url)
+
+			if err != nil {
+				ch <- message{err: err}
+				return
+			}
 		}
 
+		defer response.Body.Close()
 		fileParts := strings.Split(url, ".")
 		filename := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + fileParts[len(fileParts)-1] //todo add extention
 		err = es.imageStorage.SaveImageData(response.Body, filename, width, height)

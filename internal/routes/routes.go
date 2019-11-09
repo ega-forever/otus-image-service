@@ -8,15 +8,29 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func SetImageRouter(r *mux.Router, imageService *services.ImageService) {
-	s := r.PathPrefix("/images").Subrouter()
-	s.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
+	s := r.PathPrefix("/crop").Subrouter()
+	s.HandleFunc("/{width}/{height}/{url:.*}", func(response http.ResponseWriter, request *http.Request) {
 
-		imageUrl := request.URL.Query().Get("url")
-		size := request.URL.Query().Get("size")
-		file, headers, err := imageService.CacheToStorage(context.Background(), imageUrl, size)
+		vars := mux.Vars(request)
+		imageUrl := vars["url"]
+
+		width, err := strconv.Atoi(vars["width"])
+
+		if err != nil {
+			return
+		}
+
+		height, err := strconv.Atoi(vars["height"])
+
+		if err != nil {
+			return
+		}
+
+		file, headers, err := imageService.CacheToStorage(context.Background(), imageUrl, width, height)
 
 		if err != nil {
 			log.Println(err)

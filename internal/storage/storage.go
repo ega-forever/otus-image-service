@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 )
 
@@ -32,7 +33,7 @@ func New(count int, storeDir string) *Storage {
 	return &Storage{ctx: ctx, lru: lru, storeDir: storeDir}
 }
 
-func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename string, headers map[string][]string) error {
+func (storage *Storage) SaveImageByURL(ctx context.Context, url string, width int, height int, filename string, headers map[string][]string) error {
 
 	ch := make(chan error)
 
@@ -41,7 +42,7 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename
 	go func() {
 		mutex.Lock()
 		fmt.Println("put url", url)
-		_, removedItem := storage.lru.Put(url, lruItem{filename: filename, headers: headers})
+		_, removedItem := storage.lru.Put(url+"."+strconv.Itoa(width)+"."+strconv.Itoa(height), lruItem{filename: filename, headers: headers})
 
 		if removedItem != nil {
 			err := os.Remove(path.Join(storage.storeDir, removedItem.(lruItem).filename))
@@ -56,10 +57,10 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, filename
 	return <-ch
 }
 
-func (storage *Storage) FindCachedImageData(url string) ([]byte, map[string][]string, error) {
+func (storage *Storage) FindCachedImageData(url string, width int, height int) ([]byte, map[string][]string, error) {
 
 	fmt.Println("get url", url)
-	item := storage.lru.Get(url)
+	item := storage.lru.Get(url + "." + strconv.Itoa(width) + "." + strconv.Itoa(height))
 
 	if item == nil {
 		return nil, nil, nil
