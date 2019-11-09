@@ -36,6 +36,7 @@ func SetImageRouter(r *mux.Router, imageService *services.ImageService) {
 			log.Println(err)
 			message := messages.DefaultResponse{Status: 0}
 			marshaled, _ := json.Marshal(message)
+			response.WriteHeader(http.StatusNotFound)
 			_, _ = response.Write(marshaled)
 			return
 		}

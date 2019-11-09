@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"github.com/disintegration/imaging"
 	"io"
 	"io/ioutil"
@@ -41,7 +40,6 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, width in
 
 	go func() {
 		mutex.Lock()
-		fmt.Println("put url", url)
 		_, removedItem := storage.lru.Put(url+"."+strconv.Itoa(width)+"."+strconv.Itoa(height), lruItem{filename: filename, headers: headers})
 
 		if removedItem != nil {
@@ -59,7 +57,6 @@ func (storage *Storage) SaveImageByURL(ctx context.Context, url string, width in
 
 func (storage *Storage) FindCachedImageData(url string, width int, height int) ([]byte, map[string][]string, error) {
 
-	fmt.Println("get url", url)
 	item := storage.lru.Get(url + "." + strconv.Itoa(width) + "." + strconv.Itoa(height))
 
 	if item == nil {
