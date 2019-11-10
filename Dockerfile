@@ -2,12 +2,9 @@ FROM golang:1.13 as builder
 
 WORKDIR /app
 
-COPY cmd .
-COPY internal .
-COPY go.mod .
-COPY main.go .
+COPY . .
 
-RUN CGO_ENABLED=0 && go build -o service
+RUN CGO_ENABLED=0 && make build
 
 ###
 

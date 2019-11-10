@@ -16,7 +16,7 @@ func init() {
 	viper.AddConfigPath(".")
 	viper.SetConfigFile(".env")
 
-	viper.SetDefault("LOG_LEVEL", 30)
+	viper.SetDefault("LOG_LEVEL", 4)
 	viper.SetDefault("REST_PORT", "8080")
 	viper.SetDefault("LRU_CACHE", 10)
 	viper.SetDefault("STORE_DIR", "temp")
@@ -77,5 +77,19 @@ func TestWrongImageUpload(t *testing.T) {
 	}
 
 	assert.Equal(t, respResizer.Status, "404 Not Found")
+
+}
+
+func TestWrongCropParams(t *testing.T) {
+
+	port := viper.GetString("REST_PORT")
+
+	respResizer, err := http.Get("http://localhost:" + port + "/crop/x/-12/" + "localhost/123")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	assert.Equal(t, respResizer.Status, "400 Bad Request")
 
 }

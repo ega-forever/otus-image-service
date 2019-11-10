@@ -11,7 +11,7 @@ func init() {
 	viper.AddConfigPath(".")
 	viper.SetConfigFile(".env")
 
-	viper.SetDefault("LOG_LEVEL", 30)
+	viper.SetDefault("LOG_LEVEL", 4)
 	viper.SetDefault("REST_PORT", "8080")
 	viper.SetDefault("LRU_CACHE", 10)
 	viper.SetDefault("STORE_DIR", "temp")
