@@ -30,7 +30,6 @@ func (c *LRU) Get(key interface{}) interface{} {
 	return nil
 }
 
-// func (c *LRU) Put(key string, value string) (string, string) {
 func (c *LRU) Put(key interface{}, value interface{}) (interface{}, interface{}) {
 
 	var removedKey interface{}
@@ -43,7 +42,7 @@ func (c *LRU) Put(key interface{}, value interface{}) (interface{}, interface{})
 		if c.l.Len() == c.cap {
 			idx := c.l.Back().Value.(*list.Element).Value.(Pair).key
 			removedKey = idx
-			removedValue = c.m[idx].Value.(Pair).value
+			removedValue = c.m[idx].Value.(*list.Element).Value.(Pair).value
 			delete(c.m, idx)
 			c.l.Remove(c.l.Back())
 		}

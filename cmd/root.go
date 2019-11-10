@@ -19,13 +19,10 @@ var RootCmd = &cobra.Command{
 		port := viper.GetString("REST_PORT")
 		lruCache := viper.GetInt("LRU_CACHE")
 		storeDir := viper.GetString("STORE_DIR")
-		// log.Info(port)
 
 		r := mux.NewRouter()
 		r.Use(mux.CORSMethodMiddleware(r))
-		// r.Use(app.LoggingMiddleware)
 
-		// todo clean up dir
 		st := storage.New(lruCache, storeDir)
 		imageService := services.NewImageService(st)
 		routes.SetImageRouter(r, imageService)
