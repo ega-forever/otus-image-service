@@ -23,11 +23,16 @@ var RootCmd = &cobra.Command{
 		r := mux.NewRouter()
 		r.Use(mux.CORSMethodMiddleware(r))
 
-		st := storage.New(lruCache, storeDir)
+		st, err := storage.New(lruCache, storeDir)
+
+		if err != nil {
+			log.Panic(err)
+		}
+
 		imageService := services.NewImageService(st)
 		routes.SetImageRouter(r, imageService)
 
-		err := http.ListenAndServe(":"+port, r)
+		err = http.ListenAndServe(":"+port, r)
 
 		if err != nil {
 			log.Panic(err)

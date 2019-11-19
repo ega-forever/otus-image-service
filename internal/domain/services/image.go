@@ -44,38 +44,24 @@ func (es *ImageService) CacheToStorage(ctx context.Context, url string, width in
 
 func (es *ImageService) grabAndCacheImage(url string, width int, height int) (string, map[string][]string, error) {
 
-	type message struct {
-		err     error
-		name    string
-		headers map[string][]string
+	response, err := http.Get("https://" + url)
+
+	if err != nil {
+		response, err = http.Get("http://" + url)
+
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
-	ch := make(chan message)
+	defer response.Body.Close()
+	fileParts := strings.Split(url, ".")
+	filename := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + fileParts[len(fileParts)-1] //todo add extention
+	err = es.imageStorage.SaveImageData(response.Body, filename, width, height)
 
-	go func() {
-		response, err := http.Get("https://" + url)
+	if err != nil {
+		return "", nil, err
+	}
 
-		if err != nil {
-			response, err = http.Get("http://" + url)
-
-			if err != nil {
-				ch <- message{err: err}
-				return
-			}
-		}
-
-		defer response.Body.Close()
-		fileParts := strings.Split(url, ".")
-		filename := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + fileParts[len(fileParts)-1] //todo add extention
-		err = es.imageStorage.SaveImageData(response.Body, filename, width, height)
-
-		if err != nil {
-			ch <- message{err: err}
-		}
-
-		ch <- message{name: filename, headers: response.Header}
-	}()
-
-	m := <-ch
-	return m.name, m.headers, m.err
+	return filename, response.Header, nil
 }
